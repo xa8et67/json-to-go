@@ -2,7 +2,8 @@
 
 ## Windows
 编译cmd/http/main.go即可
-```$env:GOOS="windows"; $env:GOARCH="amd64"; go build -o app.exe cmd/http/main.go```
+```bash
+$env:GOOS="windows"; $env:GOARCH="amd64"; go build -o app.exe cmd/http/main.go```
 
 ## Introduction
 
