@@ -1,5 +1,9 @@
 # json-to-go
 
+##Windows
+编译cmd/http/main.go即可
+'''$env:GOOS="windows"; $env:GOARCH="amd64"; go build -o app.exe cmd/http/main.go'''
+
 ## Introduction
 
 将json直接转为go结构体，支持注释，自定义tag，中文属性，属性类型推断，属性合并等功能，并提供简单易用的静态web界面
