@@ -5,6 +5,9 @@
 ```bash
 $env:GOOS = "js"; $env:GOARCH = "wasm"; go build -ldflags="-s -w" -o main.wasm cmd/wasm/main.go
 ```
+```bash
+tinygo build -o main.wasm -target wasm -opt=2 -no-debug ./cmd/wasm/main.go
+```
 
 编译cmd/http/main.go
 ```bash
