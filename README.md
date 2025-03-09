@@ -1,7 +1,12 @@
 # json-to-go
 
 ## Windows
-编译cmd/http/main.go即可
+编译wasm
+```bash
+$env:GOOS = "js"; $env:GOARCH = "wasm"; go build -o main.wasm ./cmd/wasm/main.go
+```
+
+编译cmd/http/main.go
 ```bash
 $env:GOOS="windows"; $env:GOARCH="amd64"; go build -ldflags="-s -w" -o app.exe cmd/http/main.go
 ```
