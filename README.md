@@ -3,7 +3,7 @@
 ## Windows
 编译wasm
 ```bash
-$env:GOOS = "js"; $env:GOARCH = "wasm"; go build -o main.wasm ./cmd/wasm/main.go
+$env:GOOS = "js"; $env:GOARCH = "wasm"; go build -ldflags="-s -w" -o main.wasm ./cmd/wasm/main.go
 ```
 
 编译cmd/http/main.go
