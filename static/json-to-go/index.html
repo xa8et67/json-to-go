@@ -63,6 +63,15 @@
                        aria-label="自定义，多个以英文逗号隔开" aria-describedby="inputGroup-sizing-sm" id="customTag"
                        style="padding: 0">
             </div>
+            <label class="form-check-label" style="margin-left: 20px">类型：</label>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="typeRadio" id="typeRadio1" value="struct" checked>
+                <label class="form-check-label" for="typeRadio1">结构体</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="typeRadio" id="typeRadio2" value="map">
+                <label class="form-check-label" for="typeRadio2">Map</label>
+            </div>
             <label class="form-check-label" style="margin-left: 20px">嵌套：</label>
             <div class="form-check form-check-inline">
                 <input class="form-check-input" type="radio" name="nestRadio" id="nestRadio1" value="true">
@@ -95,6 +104,12 @@
                 <input class="form-check-input" type="radio" name="pointerRadio" id="pointerRadio2" value="false"
                        checked>
                 <label class="form-check-label" for="pointerRadio2">N</label>
+            </div>
+            <!-- 添加访问函数选项 -->
+            <label class="form-check-label" style="margin-left: 20px">访问函数：</label>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="accessorFlag">
+                <label class="form-check-label" for="accessorFlag">生成</label>
             </div>
             <div class="form-check form-check-inline col-1">
                 <button id="generate" type="button" class="btn btn-primary">生成</button>
@@ -291,6 +306,8 @@
         param.comment = getRadioValue("commentRadio")
         param.pointerFlag = getRadioValue("pointerRadio")
         param.nestFlag = getRadioValue("nestRadio")
+        param.structType = getRadioValue("typeRadio");  // 添加类型参数
+        param.accessorFlag = document.getElementById("accessorFlag").checked;
         let res = JsonToGoGen(param)
         if (res.code === 0) {
             output.setValue(res.data)
