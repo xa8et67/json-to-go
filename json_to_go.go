@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"go/format"
 	"json-to-go/jsonparser"
@@ -97,6 +98,10 @@ type Config struct {
 	PointerFlag bool
 	// 是否嵌套结构
 	NestFlag bool
+	// 控制是否生成访问函数
+	AccessorFlag bool
+	// 新增结构体类型选项
+	StructType string
 }
 
 type Node struct {
@@ -114,11 +119,18 @@ type Node struct {
 	childrenMerge *[][]*Node
 	// childrenMerge 下标使用
 	cache map[string]int
+	// 用于存储格式化后的结构体名称和字段名。
+	formattedName string
+	formattedKey  string
 }
 
 // Generate json字符串转对象，在前端进行了json5格式验证和格式化
 func Generate(jsonStr string, config *Config) (string, error) {
 	setJsonTag(config)
+	// 添加类型判断
+	if config.StructType == "map" {
+		return generateMap(jsonStr, config)
+	}
 	// 解析JSON
 	parent := NewNode(DefaultName, "", GroupO, "")
 	var err error
@@ -142,25 +154,31 @@ func Generate(jsonStr string, config *Config) (string, error) {
 	// 合并数组内的对象和属性
 	mergeArrayNode(parent)
 	var buff bytes.Buffer
+	all := make([]*Node, 0)
 	if config.NestFlag {
 		// 嵌套结构体
 		buff.WriteString(fmt.Sprintf("type %s ", parent.k))
 		nestKey := recursionWrite(parent, config)
 		buff.WriteString(nestKey)
 	} else {
-		all := make([]*Node, 0)
 		recursionAdd(&all, parent)
 		// 格式化前name；格式化后name
 		nameMap := make(map[string]string)
 		// 转换后的name，如果重名了，后面加数字表示
 		nameCount := make(map[string]int)
 		for i, a := range all {
+			// 设置格式化后的结构体名称
+			formattedName := formatKey(nameMap, nameCount, a.k)
+			a.formattedName = formattedName
+
 			buff.WriteString(fmt.Sprintf("type %s struct {\n", formatKey(nameMap, nameCount, a.k)))
 			for _, node := range *a.children {
 				if node.c != "" && config.Comment == Comment1 {
 					buff.WriteString(node.c + "\n")
 				}
+				// 设置格式化后的字段名称
 				key := formatKey(nameMap, nameCount, node.k)
+				node.formattedKey = key
 				if node.c != "" && config.Comment == Comment2 {
 					buff.WriteString(fmt.Sprintf("%s %s %s %s\n", key, formatType(key, node.t, node.g, config.PointerFlag), formatTag(node.k, config.Tags), node.c))
 				} else {
@@ -174,12 +192,84 @@ func Generate(jsonStr string, config *Config) (string, error) {
 			}
 		}
 	}
+	if config.AccessorFlag {
+		if config.NestFlag {
+			// 嵌套模式下只生成最外层结构体的访问函数
+			generateAccessor(&buff, parent)
+		} else {
+			// 非嵌套模式下生成所有结构体的访问函数
+			for _, a := range all {
+				generateAccessor(&buff, a)
+			}
+		}
+	}
 	source, err := format.Source(buff.Bytes())
 	if err != nil {
 		fmt.Println(err)
 		return err.Error(), err
 	}
 	return string(source), nil
+}
+
+func generateAccessor(buff *bytes.Buffer, node *Node) {
+	if node.formattedName == "" {
+		return
+	}
+	buff.WriteString(fmt.Sprintf("\nfunc (n *%s) GetField(fieldName string) interface{} {\n", node.formattedName))
+	buff.WriteString("    switch fieldName {\n")
+	for _, child := range *node.children {
+		if child.formattedKey == "" {
+			continue
+		}
+		buff.WriteString(fmt.Sprintf("    case %q:\n        return n.%s\n", child.formattedKey, child.formattedKey))
+	}
+	buff.WriteString("    default:\n        return nil\n    }\n}\n")
+}
+
+// 新增Map生成函数
+func generateMap(jsonStr string, config *Config) (string, error) {
+	var result interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
+		return "", err
+	}
+
+	var buff bytes.Buffer
+	buff.WriteString("var generatedMap = ")
+	generateMapValue(&buff, result, 0)
+	source, _ := format.Source(buff.Bytes())
+	return string(source), nil
+}
+
+// 递归生成Map结构
+func generateMapValue(buff *bytes.Buffer, value interface{}, indent int) {
+	switch v := value.(type) {
+	case map[string]interface{}:
+		buff.WriteString("map[string]interface{}{\n")
+		for key, val := range v {
+			buff.WriteString(strings.Repeat("    ", indent+1))
+			fmt.Fprintf(buff, "%q: ", key)
+			generateMapValue(buff, val, indent+1)
+			buff.WriteString(",\n")
+		}
+		buff.WriteString(strings.Repeat("    ", indent) + "}")
+	case []interface{}:
+		buff.WriteString("[]interface{}{\n")
+		for _, item := range v {
+			buff.WriteString(strings.Repeat("    ", indent+1))
+			generateMapValue(buff, item, indent+1)
+			buff.WriteString(",\n")
+		}
+		buff.WriteString(strings.Repeat("    ", indent) + "}")
+	case float64:
+		// 判断是否为整数
+		if v == float64(int64(v)) {
+			buff.WriteString(fmt.Sprintf("%d", int64(v))) // 强制转换为整数
+		} else {
+			buff.WriteString(fmt.Sprintf("%v", v)) // 保持浮点数
+		}
+	default:
+		fmt.Fprintf(buff, "%#v", v)
+	}
 }
 
 func NewNode(k, t, g, c string) *Node {
