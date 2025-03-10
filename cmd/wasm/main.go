@@ -1,7 +1,7 @@
 package main
 
 import (
-	"json-to-go"
+	core "json-to-go"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -16,8 +16,10 @@ func main() {
 }
 
 func JsonToGoGen(this js.Value, args []js.Value) interface{} {
-	config := core.Config{}
 	jsonValue := args[0]
+	config := core.Config{
+		StructType: getStringVue(jsonValue, "structType"), // 添加类型参数
+	}
 	jsonStr := getStringVue(jsonValue, "jsonStr")
 	var tags []string
 	for _, t := range []string{"jsonTag", "bsonTag", "mapstructureTag", "customTag"} {
@@ -43,6 +45,8 @@ func JsonToGoGen(this js.Value, args []js.Value) interface{} {
 	if nestFlag == "true" {
 		config.NestFlag = true
 	}
+	accessorFlag := jsonValue.Get("accessorFlag").Bool() // 获取 accessorFlag 参数
+	config.AccessorFlag = accessorFlag
 	generate, err := core.Generate(jsonStr, &config)
 	if err != nil {
 		return map[string]interface{}{
