@@ -8,6 +8,10 @@ $env:GOOS = "js"; $env:GOARCH = "wasm"; go build -ldflags="-s -w" -o main.wasm c
 ```bash
 tinygo build -o main.wasm -target wasm -opt=2 -no-debug ./cmd/wasm/main.go
 ```
+手动安装tinygo和binaryen使用临时环境变量编译.
+```bash
+$env:PATH += ";C:\Program Files\tinygo\bin";$env:WASMOPT = "C:\Program Files\binaryen\bin\wasm-opt.exe"; tinygo build -o main.wasm -target wasm -opt=2 -no-debug ./cmd/wasm/main.go
+```
 
 编译cmd/http/main.go
 ```bash
